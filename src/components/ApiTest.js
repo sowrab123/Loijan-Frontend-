@@ -11,6 +11,17 @@ export default function ApiTest() {
     setResults({});
 
     const endpoints = [
+      { name: 'Auth Login', url: 'auth/login/', method: 'POST', data: {
+        username: 'testuser',
+        password: 'testpass'
+      }},
+      { name: 'Auth Register', url: 'auth/register/', method: 'POST', data: {
+        username: 'testuser2',
+        email: 'test@example.com',
+        password: 'testpass',
+        role: 'sender'
+      }},
+      { name: 'Auth Profile', url: 'auth/profile/', method: 'GET' },
       { name: 'Jobs List', url: 'jobs/', method: 'GET' },
       { name: 'Post Job', url: 'jobs/', method: 'POST', data: {
         goods_name: 'Test Package',
@@ -18,9 +29,31 @@ export default function ApiTest() {
         drop_location: 'Test Drop',
         delivery_time: '2024-12-31T10:00:00Z'
       }},
-      { name: 'User Profile', url: 'accounts/profile/', method: 'GET' },
+      { name: 'Accounts Token', url: 'accounts/token/', method: 'POST', data: {
+        username: 'testuser',
+        password: 'testpass'
+      }},
+      { name: 'Accounts Register', url: 'accounts/register/', method: 'POST', data: {
+        username: 'testuser3',
+        email: 'test2@example.com',
+        password: 'testpass',
+        role: 'sender'
+      }},
+      { name: 'Accounts Profile', url: 'accounts/profile/', method: 'GET' },
       { name: 'Bids List', url: 'bids/', method: 'GET' },
-      { name: 'Chat Messages', url: 'chats/', method: 'GET' }
+      { name: 'Chat Messages', url: 'chats/', method: 'GET' },
+      { name: 'Simple Token', url: 'token/', method: 'POST', data: {
+        username: 'testuser',
+        password: 'testpass'
+      }},
+      { name: 'Simple Register', url: 'register/', method: 'POST', data: {
+        username: 'testuser4',
+        email: 'test3@example.com',
+        password: 'testpass',
+        role: 'sender'
+      }},
+      { name: 'Simple Profile', url: 'profile/', method: 'GET' },
+      { name: 'User Endpoint', url: 'user/', method: 'GET' }
     ];
 
     const newResults = {};
@@ -37,13 +70,15 @@ export default function ApiTest() {
         newResults[endpoint.name] = {
           success: true,
           status: response.status,
-          data: response.data
+          data: typeof response.data === 'object' ? JSON.stringify(response.data, null, 2) : response.data
         };
       } catch (error) {
         newResults[endpoint.name] = {
           success: false,
           status: error.response?.status,
-          error: error.response?.data || error.message
+          error: typeof error.response?.data === 'object' 
+            ? JSON.stringify(error.response.data, null, 2) 
+            : error.response?.data || error.message
         };
       }
     }

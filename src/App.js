@@ -1,6 +1,6 @@
 // App.js
 import { BrowserRouter, Routes, Route } from 'react-router-dom';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { UserProvider } from './contexts/UserContext';
 import Navbar from './components/Navbar';
 import Login from './components/Login';
@@ -15,6 +15,16 @@ import ApiTest from './components/ApiTest';
 function App() {
   const [token, setToken] = useState(localStorage.getItem('token') || '');
 
+  useEffect(() => {
+    // Sync token state with localStorage
+    const handleStorageChange = () => {
+      const newToken = localStorage.getItem('token') || '';
+      setToken(newToken);
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
+  }, []);
   return (
     <UserProvider>
       <BrowserRouter>

@@ -28,14 +28,43 @@ export default function PostJob() {
       return;
     }
 
+    // Validate delivery time is in the future
+    const deliveryDate = new Date(form.delivery_time);
+    const now = new Date();
+    if (deliveryDate <= now) {
+      setError('Delivery time must be in the future');
+      setLoading(false);
+      return;
+    }
+
     try {
       console.log('Submitting job data:', form);
-      const response = await api.post('jobs/', form);
+      
+      // Format the data properly
+      const jobData = {
+        ...form,
+        delivery_time: new Date(form.delivery_time).toISOString()
+      };
+      
+      console.log('Formatted job data:', jobData);
+      
+      // Try different possible endpoints
+      let response;
+      try {
+        response = await api.post('jobs/', jobData);
+      } catch (err) {
+        if (err.response?.status === 404) {
+          response = await api.post('job/', jobData);
+        } else {
+          throw err;
+        }
+      }
+      
       console.log('Job posted successfully:', response.data);
       setSuccess(true);
       setTimeout(() => {
         navigate('/jobs');
-      }, 2000);
+      }, 1500);
     } catch (err) {
       console.error('Post Job Error:', err);
       console.error('Error response:', err.response);
@@ -48,6 +77,16 @@ export default function PostJob() {
           errorMessage = err.response.data.message;
         } else if (err.response.data.detail) {
           errorMessage = err.response.data.detail;
+        } else if (err.response.data.error) {
+          errorMessage = err.response.data.error;
+        } else if (err.response.data.goods_name) {
+          errorMessage = `Goods name: ${err.response.data.goods_name[0]}`;
+        } else if (err.response.data.pickup_location) {
+          errorMessage = `Pickup location: ${err.response.data.pickup_location[0]}`;
+        } else if (err.response.data.drop_location) {
+          errorMessage = `Drop location: ${err.response.data.drop_location[0]}`;
+        } else if (err.response.data.delivery_time) {
+          errorMessage = `Delivery time: ${err.response.data.delivery_time[0]}`;
         } else if (typeof err.response.data === 'string') {
           errorMessage = err.response.data;
         } else if (err.response.data.non_field_errors) {

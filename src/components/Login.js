@@ -18,13 +18,63 @@ export default function Login({ setToken }) {
     setLoading(true);
     setError('');
 
+    if (!username || !password) {
+      setError('Please enter both username and password.');
+      setLoading(false);
+      return;
+    }
     try {
-      const res = await api.post('accounts/token/', { username, password });
-      await login(res.data.access);
-      setToken(res.data.access);
+      console.log('Attempting login with:', { username });
+      
+      // Try different possible endpoints
+      let response;
+      try {
+        response = await api.post('auth/login/', { username, password });
+      } catch (err) {
+        if (err.response?.status === 404) {
+          try {
+            response = await api.post('accounts/token/', { username, password });
+          } catch (err2) {
+            if (err2.response?.status === 404) {
+              response = await api.post('token/', { username, password });
+            } else {
+              throw err2;
+            }
+          }
+        } else {
+          throw err;
+        }
+      }
+      
+      console.log('Login response:', response.data);
+      
+      const token = response.data.access || response.data.token || response.data.access_token;
+      if (!token) {
+        throw new Error('No token received from server');
+      }
+      
+      await login(token);
+      setToken(token);
       navigate('/jobs');
     } catch (err) {
-      setError('Invalid username or password. Please try again.');
+      console.error('Login error:', err);
+      let errorMessage = 'Login failed. Please try again.';
+      
+      if (err.response?.data) {
+        if (err.response.data.detail) {
+          errorMessage = err.response.data.detail;
+        } else if (err.response.data.message) {
+          errorMessage = err.response.data.message;
+        } else if (err.response.data.error) {
+          errorMessage = err.response.data.error;
+        } else if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

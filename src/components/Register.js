@@ -21,25 +21,117 @@ export default function Register() {
     e.preventDefault();
     setLoading(true);
     setError('');
+    
+    // Validation
+    if (!form.username || !form.email || !form.password) {
+      setError('All fields are required.');
+      setLoading(false);
+      return;
+    }
+    
+    if (form.password.length < 6) {
+      setError('Password must be at least 6 characters long.');
+      setLoading(false);
+      return;
+    }
+    
     try {
-      await api.post('accounts/register/', form);
+      console.log('Attempting registration with:', { ...form, password: '[HIDDEN]' });
+      
+      // Try different possible endpoints
+      let registerResponse;
+      try {
+        registerResponse = await api.post('auth/register/', form);
+      } catch (err) {
+        if (err.response?.status === 404) {
+          try {
+            registerResponse = await api.post('accounts/register/', form);
+          } catch (err2) {
+            if (err2.response?.status === 404) {
+              registerResponse = await api.post('register/', form);
+            } else {
+              throw err2;
+            }
+          }
+        } else {
+          throw err;
+        }
+      }
+      
+      console.log('Registration successful:', registerResponse.data);
       setSuccess(true);
+      
       // Automatically log in after registration
-      const res = await api.post('accounts/token/', {
-        username: form.username,
-        password: form.password
-      });
-      await login(res.data.access);
+      try {
+        let loginResponse;
+        try {
+          loginResponse = await api.post('auth/login/', {
+            username: form.username,
+            password: form.password
+          });
+        } catch (err) {
+          if (err.response?.status === 404) {
+            try {
+              loginResponse = await api.post('accounts/token/', {
+                username: form.username,
+                password: form.password
+              });
+            } catch (err2) {
+              if (err2.response?.status === 404) {
+                loginResponse = await api.post('token/', {
+                  username: form.username,
+                  password: form.password
+                });
+              } else {
+                throw err2;
+              }
+            }
+          } else {
+            throw err;
+          }
+        }
+        
+        const token = loginResponse.data.access || loginResponse.data.token || loginResponse.data.access_token;
+        if (token) {
+          await login(token);
+        }
+      } catch (loginErr) {
+        console.error('Auto-login failed:', loginErr);
+        // Registration succeeded but auto-login failed, redirect to login
+        setTimeout(() => {
+          navigate('/');
+        }, 2000);
+        return;
+      }
+      
       setTimeout(() => {
         navigate('/jobs');
-      }, 1000);
+      }, 1500);
     } catch (err) {
-      setError(
-        err.response?.data?.message ||
-        err.response?.data?.detail ||
-        (typeof err.response?.data === 'string' ? err.response.data : '') ||
-        'Registration failed. Please try again.'
-      );
+      console.error('Registration error:', err);
+      let errorMessage = 'Registration failed. Please try again.';
+      
+      if (err.response?.data) {
+        if (err.response.data.detail) {
+          errorMessage = err.response.data.detail;
+        } else if (err.response.data.message) {
+          errorMessage = err.response.data.message;
+        } else if (err.response.data.error) {
+          errorMessage = err.response.data.error;
+        } else if (err.response.data.username) {
+          errorMessage = `Username: ${err.response.data.username[0]}`;
+        } else if (err.response.data.email) {
+          errorMessage = `Email: ${err.response.data.email[0]}`;
+        } else if (err.response.data.password) {
+          errorMessage = `Password: ${err.response.data.password[0]}`;
+        } else if (typeof err.response.data === 'string') {
+          errorMessage = err.response.data;
+        }
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }

@@ -26,10 +26,35 @@ export default function JobDetail() {
   const loadJob = async () => {
     try {
       setLoading(true);
-      const res = await api.get(`jobs/${id}/`);
-      setJob(res.data);
+      setError('');
+      
+      console.log('Loading job details for ID:', id);
+      
+      // Try different possible endpoints
+      let response;
+      try {
+        response = await api.get(`jobs/${id}/`);
+      } catch (err) {
+        if (err.response?.status === 404) {
+          response = await api.get(`job/${id}/`);
+        } else {
+          throw err;
+        }
+      }
+      
+      console.log('Job details loaded:', response.data);
+      setJob(response.data);
     } catch (err) {
-      setError('Failed to load job details. Please try again.');
+      console.error('Failed to load job details:', err);
+      let errorMessage = 'Failed to load job details. Please try again.';
+      if (err.response?.data?.detail) {
+        errorMessage = err.response.data.detail;
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
     } finally {
       setLoading(false);
     }
@@ -37,14 +62,42 @@ export default function JobDetail() {
 
   const loadBids = async () => {
     try {
-      const res = await api.get(`bids/?job=${id}`);
-      setBids(res.data);
+      console.log('Loading bids for job ID:', id);
+      
+      // Try different possible endpoints
+      let response;
+      try {
+        response = await api.get(`bids/?job=${id}`);
+      } catch (err) {
+        if (err.response?.status === 404) {
+          try {
+            response = await api.get(`bid/?job=${id}`);
+          } catch (err2) {
+            if (err2.response?.status === 404) {
+              response = await api.get(`jobs/${id}/bids/`);
+            } else {
+              throw err2;
+            }
+          }
+        } else {
+          throw err;
+        }
+      }
+      
+      console.log('Bids loaded:', response.data);
+      const bidsData = Array.isArray(response.data) ? response.data : [];
+      setBids(bidsData);
       
       // Check if current user has already bid
-      const currentUserBid = res.data.find(bid => bid.traveler_username === user?.username);
+      const currentUserBid = bidsData.find(bid => 
+        bid.traveler_username === user?.username || 
+        bid.traveler === user?.id ||
+        bid.traveler_id === user?.id
+      );
       setUserBid(currentUserBid);
     } catch (err) {
       console.error('Failed to load bids:', err);
+      setBids([]);
     }
   };
 
@@ -60,18 +113,54 @@ export default function JobDetail() {
       return;
     }
 
+    if (parseFloat(amount) <= 0) {
+      setError('Bid amount must be greater than 0.');
+      setBidLoading(false);
+      return;
+    }
     try {
-      await api.post('bids/', { 
+      const bidData = { 
         job: id, 
         amount: parseFloat(amount), 
         message 
-      });
+      };
+      
+      console.log('Submitting bid:', bidData);
+      
+      // Try different possible endpoints
+      let response;
+      try {
+        response = await api.post('bids/', bidData);
+      } catch (err) {
+        if (err.response?.status === 404) {
+          response = await api.post('bid/', bidData);
+        } else {
+          throw err;
+        }
+      }
+      
+      console.log('Bid submitted successfully:', response.data);
       setSuccess('Bid placed successfully! You can now chat with the sender.');
       setAmount('');
       setMessage('');
       loadBids(); // Reload bids to update userBid
     } catch (err) {
-      setError(err.response?.data?.message || 'Failed to place bid. Please try again.');
+      console.error('Failed to place bid:', err);
+      let errorMessage = 'Failed to place bid. Please try again.';
+      if (err.response?.data?.detail) {
+        errorMessage = err.response.data.detail;
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.response?.data?.amount) {
+        errorMessage = `Amount: ${err.response.data.amount[0]}`;
+      } else if (err.response?.data?.message) {
+        errorMessage = `Message: ${err.response.data.message[0]}`;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
     } finally {
       setBidLoading(false);
     }

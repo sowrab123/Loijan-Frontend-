@@ -29,11 +29,52 @@ export default function Chat() {
 
   const loadMessages = async () => {
     try {
-      const res = await api.get(`chats/?job_id=${jobId}`);
-      setMessages(res.data);
+      console.log('Loading messages for job ID:', jobId);
+      
+      // Try different possible endpoints
+      let response;
+      try {
+        response = await api.get(`chats/?job_id=${jobId}`);
+      } catch (err) {
+        if (err.response?.status === 404) {
+          try {
+            response = await api.get(`chat/?job_id=${jobId}`);
+          } catch (err2) {
+            if (err2.response?.status === 404) {
+              try {
+                response = await api.get(`messages/?job=${jobId}`);
+              } catch (err3) {
+                if (err3.response?.status === 404) {
+                  response = await api.get(`jobs/${jobId}/messages/`);
+                } else {
+                  throw err3;
+                }
+              }
+            } else {
+              throw err2;
+            }
+          }
+        } else {
+          throw err;
+        }
+      }
+      
+      console.log('Messages loaded:', response.data);
+      const messagesData = Array.isArray(response.data) ? response.data : [];
+      setMessages(messagesData);
       setLoading(false);
     } catch (err) {
-      setError('Failed to load messages. Please try again.');
+      console.error('Failed to load messages:', err);
+      let errorMessage = 'Failed to load messages. Please try again.';
+      if (err.response?.data?.detail) {
+        errorMessage = err.response.data.detail;
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
+      setMessages([]);
       setLoading(false);
     }
   };
@@ -43,12 +84,48 @@ export default function Chat() {
     if (!text.trim()) return;
 
     setSending(true);
+    setError('');
+    
     try {
-      await api.post('chats/', { job: jobId, text: text.trim() });
+      const messageData = { job: jobId, text: text.trim() };
+      console.log('Sending message:', messageData);
+      
+      // Try different possible endpoints
+      let response;
+      try {
+        response = await api.post('chats/', messageData);
+      } catch (err) {
+        if (err.response?.status === 404) {
+          try {
+            response = await api.post('chat/', messageData);
+          } catch (err2) {
+            if (err2.response?.status === 404) {
+              response = await api.post('messages/', messageData);
+            } else {
+              throw err2;
+            }
+          }
+        } else {
+          throw err;
+        }
+      }
+      
+      console.log('Message sent successfully:', response.data);
       setText('');
       loadMessages();
     } catch (err) {
-      setError('Failed to send message. Please try again.');
+      console.error('Failed to send message:', err);
+      let errorMessage = 'Failed to send message. Please try again.';
+      if (err.response?.data?.detail) {
+        errorMessage = err.response.data.detail;
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.response?.data?.error) {
+        errorMessage = err.response.data.error;
+      } else if (err.message) {
+        errorMessage = err.message;
+      }
+      setError(errorMessage);
     } finally {
       setSending(false);
     }

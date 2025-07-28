@@ -26,7 +26,37 @@ export const UserProvider = ({ children }) => {
 
   const loadUserProfile = async () => {
     try {
-      const response = await api.get('accounts/profile/');
+      console.log('Loading user profile...');
+      
+      // Try different possible endpoints
+      let response;
+      try {
+        response = await api.get('auth/profile/');
+      } catch (err) {
+        if (err.response?.status === 404) {
+          try {
+            response = await api.get('accounts/profile/');
+          } catch (err2) {
+            if (err2.response?.status === 404) {
+              try {
+                response = await api.get('profile/');
+              } catch (err3) {
+                if (err3.response?.status === 404) {
+                  response = await api.get('user/');
+                } else {
+                  throw err3;
+                }
+              }
+            } else {
+              throw err2;
+            }
+          }
+        } else {
+          throw err;
+        }
+      }
+      
+      console.log('User profile loaded:', response.data);
       setUser(response.data);
     } catch (error) {
       console.error('Failed to load user profile:', error);
@@ -39,34 +69,85 @@ export const UserProvider = ({ children }) => {
   };
 
   const login = async (token) => {
+    console.log('Logging in with token...');
     localStorage.setItem('token', token);
     setLoading(true);
     try {
-      const response = await api.get('accounts/profile/');
+      // Try different possible endpoints
+      let response;
+      try {
+        response = await api.get('auth/profile/');
+      } catch (err) {
+        if (err.response?.status === 404) {
+          try {
+            response = await api.get('accounts/profile/');
+          } catch (err2) {
+            if (err2.response?.status === 404) {
+              try {
+                response = await api.get('profile/');
+              } catch (err3) {
+                if (err3.response?.status === 404) {
+                  response = await api.get('user/');
+                } else {
+                  throw err3;
+                }
+              }
+            } else {
+              throw err2;
+            }
+          }
+        } else {
+          throw err;
+        }
+      }
+      
+      console.log('Login successful, user data:', response.data);
       setUser(response.data);
     } catch (error) {
       console.error('Failed to load user profile after login:', error);
       localStorage.removeItem('token');
       setUser(null);
+      throw error;
     } finally {
       setLoading(false);
     }
   };
 
   const logout = () => {
+    console.log('Logging out...');
     localStorage.removeItem('token');
     setUser(null);
   };
 
   const updateProfile = async (profileData) => {
     try {
-      const response = await api.put('accounts/profile/', profileData);
+      // Try different possible endpoints
+      let response;
+      try {
+        response = await api.put('auth/profile/', profileData);
+      } catch (err) {
+        if (err.response?.status === 404) {
+          try {
+            response = await api.put('accounts/profile/', profileData);
+          } catch (err2) {
+            if (err2.response?.status === 404) {
+              response = await api.put('profile/', profileData);
+            } else {
+              throw err2;
+            }
+          }
+        } else {
+          throw err;
+        }
+      }
+      
       setUser(response.data);
       return { success: true };
     } catch (error) {
+      console.error('Failed to update profile:', error);
       return { 
         success: false, 
-        error: error.response?.data?.message || 'Failed to update profile' 
+        error: error.response?.data?.message || error.response?.data?.detail || 'Failed to update profile' 
       };
     }
   };

@@ -18,28 +18,57 @@ export default function JobsList() {
   const loadJobs = async () => {
     try {
       setLoading(true);
-      let endpoint = 'jobs/';
+      setError('');
       
-      // If sender, get their own jobs, if traveler, get all available jobs
-      if (isSender) {
-        endpoint = 'jobs/my-jobs/'; // Assuming this endpoint exists for sender's jobs
+      console.log('Loading jobs for user:', user);
+      
+      // Try different possible endpoints
+      let response;
+      try {
+        if (isSender) {
+          // Try to get sender's own jobs first
+          try {
+            response = await api.get('jobs/my-jobs/');
+          } catch (err) {
+            if (err.response?.status === 404) {
+              // Fallback to all jobs and filter client-side
+              response = await api.get('jobs/');
+              if (user && user.id) {
+                response.data = response.data.filter(job => job.sender === user.id || job.sender_id === user.id);
+              }
+            } else {
+              throw err;
+            }
+          }
+        } else {
+          // For travelers, get all available jobs
+          response = await api.get('jobs/');
+        }
+      } catch (err) {
+        if (err.response?.status === 404) {
+          // Try alternative endpoint
+          response = await api.get('job/');
+        } else {
+          throw err;
+        }
       }
       
-      const res = await api.get(endpoint);
-      setJobs(res.data);
+      console.log('Jobs loaded:', response.data);
+      setJobs(Array.isArray(response.data) ? response.data : []);
     } catch (err) {
       console.error('Error loading jobs:', err);
-      // Fallback to all jobs if my-jobs endpoint doesn't exist
-      if (isSender && err.response?.status === 404) {
-        try {
-          const res = await api.get('jobs/');
-          setJobs(res.data);
-        } catch (fallbackErr) {
-          setError('Failed to load jobs. Please try again.');
-        }
-      } else {
-        setError('Failed to load jobs. Please try again.');
+      
+      let errorMessage = 'Failed to load jobs. Please try again.';
+      if (err.response?.data?.detail) {
+        errorMessage = err.response.data.detail;
+      } else if (err.response?.data?.message) {
+        errorMessage = err.response.data.message;
+      } else if (err.message) {
+        errorMessage = err.message;
       }
+      
+      setError(errorMessage);
+      setJobs([]);
     } finally {
       setLoading(false);
     }
