@@ -30,17 +30,7 @@ export default function JobDetail() {
       
       console.log('Loading job details for ID:', id);
       
-      // Try different possible endpoints
-      let response;
-      try {
-        response = await api.get(`jobs/${id}/`);
-      } catch (err) {
-        if (err.response?.status === 404) {
-          response = await api.get(`job/${id}/`);
-        } else {
-          throw err;
-        }
-      }
+      const response = await api.get(`jobs/${id}/`);
       
       console.log('Job details loaded:', response.data);
       setJob(response.data);
@@ -64,25 +54,7 @@ export default function JobDetail() {
     try {
       console.log('Loading bids for job ID:', id);
       
-      // Try different possible endpoints
-      let response;
-      try {
-        response = await api.get(`bids/?job=${id}`);
-      } catch (err) {
-        if (err.response?.status === 404) {
-          try {
-            response = await api.get(`bid/?job=${id}`);
-          } catch (err2) {
-            if (err2.response?.status === 404) {
-              response = await api.get(`jobs/${id}/bids/`);
-            } else {
-              throw err2;
-            }
-          }
-        } else {
-          throw err;
-        }
-      }
+      const response = await api.get(`bids/?job=${id}`);
       
       console.log('Bids loaded:', response.data);
       const bidsData = Array.isArray(response.data) ? response.data : [];
@@ -127,17 +99,7 @@ export default function JobDetail() {
       
       console.log('Submitting bid:', bidData);
       
-      // Try different possible endpoints
-      let response;
-      try {
-        response = await api.post('bids/', bidData);
-      } catch (err) {
-        if (err.response?.status === 404) {
-          response = await api.post('bid/', bidData);
-        } else {
-          throw err;
-        }
-      }
+      const response = await api.post('bids/', bidData);
       
       console.log('Bid submitted successfully:', response.data);
       setSuccess('Bid placed successfully! You can now chat with the sender.');
@@ -155,8 +117,10 @@ export default function JobDetail() {
         errorMessage = err.response.data.error;
       } else if (err.response?.data?.amount) {
         errorMessage = `Amount: ${err.response.data.amount[0]}`;
-      } else if (err.response?.data?.message) {
+      } else if (err.response?.data?.message && Array.isArray(err.response.data.message)) {
         errorMessage = `Message: ${err.response.data.message[0]}`;
+      } else if (err.response?.data?.non_field_errors) {
+        errorMessage = err.response.data.non_field_errors[0];
       } else if (err.message) {
         errorMessage = err.message;
       }

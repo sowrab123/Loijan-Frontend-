@@ -31,33 +31,7 @@ export default function Chat() {
     try {
       console.log('Loading messages for job ID:', jobId);
       
-      // Try different possible endpoints
-      let response;
-      try {
-        response = await api.get(`chats/?job_id=${jobId}`);
-      } catch (err) {
-        if (err.response?.status === 404) {
-          try {
-            response = await api.get(`chat/?job_id=${jobId}`);
-          } catch (err2) {
-            if (err2.response?.status === 404) {
-              try {
-                response = await api.get(`messages/?job=${jobId}`);
-              } catch (err3) {
-                if (err3.response?.status === 404) {
-                  response = await api.get(`jobs/${jobId}/messages/`);
-                } else {
-                  throw err3;
-                }
-              }
-            } else {
-              throw err2;
-            }
-          }
-        } else {
-          throw err;
-        }
-      }
+      const response = await api.get(`chats/?job_id=${jobId}`);
       
       console.log('Messages loaded:', response.data);
       const messagesData = Array.isArray(response.data) ? response.data : [];
@@ -90,25 +64,7 @@ export default function Chat() {
       const messageData = { job: jobId, text: text.trim() };
       console.log('Sending message:', messageData);
       
-      // Try different possible endpoints
-      let response;
-      try {
-        response = await api.post('chats/', messageData);
-      } catch (err) {
-        if (err.response?.status === 404) {
-          try {
-            response = await api.post('chat/', messageData);
-          } catch (err2) {
-            if (err2.response?.status === 404) {
-              response = await api.post('messages/', messageData);
-            } else {
-              throw err2;
-            }
-          }
-        } else {
-          throw err;
-        }
-      }
+      const response = await api.post('chats/', messageData);
       
       console.log('Message sent successfully:', response.data);
       setText('');
@@ -122,6 +78,8 @@ export default function Chat() {
         errorMessage = err.response.data.message;
       } else if (err.response?.data?.error) {
         errorMessage = err.response.data.error;
+      } else if (err.response?.data?.non_field_errors) {
+        errorMessage = err.response.data.non_field_errors[0];
       } else if (err.message) {
         errorMessage = err.message;
       }

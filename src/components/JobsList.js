@@ -22,35 +22,13 @@ export default function JobsList() {
       
       console.log('Loading jobs for user:', user);
       
-      // Try different possible endpoints
       let response;
-      try {
-        if (isSender) {
-          // Try to get sender's own jobs first
-          try {
-            response = await api.get('jobs/my-jobs/');
-          } catch (err) {
-            if (err.response?.status === 404) {
-              // Fallback to all jobs and filter client-side
-              response = await api.get('jobs/');
-              if (user && user.id) {
-                response.data = response.data.filter(job => job.sender === user.id || job.sender_id === user.id);
-              }
-            } else {
-              throw err;
-            }
-          }
-        } else {
-          // For travelers, get all available jobs
-          response = await api.get('jobs/');
-        }
-      } catch (err) {
-        if (err.response?.status === 404) {
-          // Try alternative endpoint
-          response = await api.get('job/');
-        } else {
-          throw err;
-        }
+      if (isSender) {
+        // For senders, get their own jobs
+        response = await api.get('jobs/my-jobs/');
+      } else {
+        // For travelers, get all available jobs
+        response = await api.get('jobs/');
       }
       
       console.log('Jobs loaded:', response.data);

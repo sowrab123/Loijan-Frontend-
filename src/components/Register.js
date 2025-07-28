@@ -38,60 +38,19 @@ export default function Register() {
     try {
       console.log('Attempting registration with:', { ...form, password: '[HIDDEN]' });
       
-      // Try different possible endpoints
-      let registerResponse;
-      try {
-        registerResponse = await api.post('auth/register/', form);
-      } catch (err) {
-        if (err.response?.status === 404) {
-          try {
-            registerResponse = await api.post('accounts/register/', form);
-          } catch (err2) {
-            if (err2.response?.status === 404) {
-              registerResponse = await api.post('register/', form);
-            } else {
-              throw err2;
-            }
-          }
-        } else {
-          throw err;
-        }
-      }
+      const registerResponse = await api.post('accounts/register/', form);
       
       console.log('Registration successful:', registerResponse.data);
       setSuccess(true);
       
       // Automatically log in after registration
       try {
-        let loginResponse;
-        try {
-          loginResponse = await api.post('auth/login/', {
-            username: form.username,
-            password: form.password
-          });
-        } catch (err) {
-          if (err.response?.status === 404) {
-            try {
-              loginResponse = await api.post('accounts/token/', {
-                username: form.username,
-                password: form.password
-              });
-            } catch (err2) {
-              if (err2.response?.status === 404) {
-                loginResponse = await api.post('token/', {
-                  username: form.username,
-                  password: form.password
-                });
-              } else {
-                throw err2;
-              }
-            }
-          } else {
-            throw err;
-          }
-        }
+        const loginResponse = await api.post('accounts/token/', {
+          username: form.username,
+          password: form.password
+        });
         
-        const token = loginResponse.data.access || loginResponse.data.token || loginResponse.data.access_token;
+        const token = loginResponse.data.access;
         if (token) {
           await login(token);
         }
@@ -124,6 +83,8 @@ export default function Register() {
           errorMessage = `Email: ${err.response.data.email[0]}`;
         } else if (err.response.data.password) {
           errorMessage = `Password: ${err.response.data.password[0]}`;
+        } else if (err.response.data.non_field_errors) {
+          errorMessage = err.response.data.non_field_errors[0];
         } else if (typeof err.response.data === 'string') {
           errorMessage = err.response.data;
         }

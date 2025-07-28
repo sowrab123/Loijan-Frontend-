@@ -48,17 +48,7 @@ export default function PostJob() {
       
       console.log('Formatted job data:', jobData);
       
-      // Try different possible endpoints
-      let response;
-      try {
-        response = await api.post('jobs/', jobData);
-      } catch (err) {
-        if (err.response?.status === 404) {
-          response = await api.post('job/', jobData);
-        } else {
-          throw err;
-        }
-      }
+      const response = await api.post('jobs/', jobData);
       
       console.log('Job posted successfully:', response.data);
       setSuccess(true);

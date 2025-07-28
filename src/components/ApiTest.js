@@ -11,49 +11,36 @@ export default function ApiTest() {
     setResults({});
 
     const endpoints = [
-      { name: 'Auth Login', url: 'auth/login/', method: 'POST', data: {
+      { name: 'Login', url: 'accounts/token/', method: 'POST', data: {
         username: 'testuser',
         password: 'testpass'
       }},
-      { name: 'Auth Register', url: 'auth/register/', method: 'POST', data: {
+      { name: 'Register', url: 'accounts/register/', method: 'POST', data: {
         username: 'testuser2',
         email: 'test@example.com',
         password: 'testpass',
         role: 'sender'
       }},
-      { name: 'Auth Profile', url: 'auth/profile/', method: 'GET' },
+      { name: 'Profile', url: 'accounts/profile/', method: 'GET' },
       { name: 'Jobs List', url: 'jobs/', method: 'GET' },
+      { name: 'My Jobs', url: 'jobs/my-jobs/', method: 'GET' },
       { name: 'Post Job', url: 'jobs/', method: 'POST', data: {
         goods_name: 'Test Package',
         pickup_location: 'Test Pickup',
         drop_location: 'Test Drop',
         delivery_time: '2024-12-31T10:00:00Z'
       }},
-      { name: 'Accounts Token', url: 'accounts/token/', method: 'POST', data: {
-        username: 'testuser',
-        password: 'testpass'
-      }},
-      { name: 'Accounts Register', url: 'accounts/register/', method: 'POST', data: {
-        username: 'testuser3',
-        email: 'test2@example.com',
-        password: 'testpass',
-        role: 'sender'
-      }},
-      { name: 'Accounts Profile', url: 'accounts/profile/', method: 'GET' },
       { name: 'Bids List', url: 'bids/', method: 'GET' },
+      { name: 'Place Bid', url: 'bids/', method: 'POST', data: {
+        job: 1,
+        amount: 25.00,
+        message: 'I can deliver this'
+      }},
       { name: 'Chat Messages', url: 'chats/', method: 'GET' },
-      { name: 'Simple Token', url: 'token/', method: 'POST', data: {
-        username: 'testuser',
-        password: 'testpass'
-      }},
-      { name: 'Simple Register', url: 'register/', method: 'POST', data: {
-        username: 'testuser4',
-        email: 'test3@example.com',
-        password: 'testpass',
-        role: 'sender'
-      }},
-      { name: 'Simple Profile', url: 'profile/', method: 'GET' },
-      { name: 'User Endpoint', url: 'user/', method: 'GET' }
+      { name: 'Send Message', url: 'chats/', method: 'POST', data: {
+        job: 1,
+        text: 'Hello, test message'
+      }}
     ];
 
     const newResults = {};
@@ -65,6 +52,8 @@ export default function ApiTest() {
           response = await api.get(endpoint.url);
         } else if (endpoint.method === 'POST') {
           response = await api.post(endpoint.url, endpoint.data);
+        } else if (endpoint.method === 'PUT') {
+          response = await api.put(endpoint.url, endpoint.data);
         }
         
         newResults[endpoint.name] = {

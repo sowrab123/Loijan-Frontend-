@@ -28,33 +28,7 @@ export const UserProvider = ({ children }) => {
     try {
       console.log('Loading user profile...');
       
-      // Try different possible endpoints
-      let response;
-      try {
-        response = await api.get('auth/profile/');
-      } catch (err) {
-        if (err.response?.status === 404) {
-          try {
-            response = await api.get('accounts/profile/');
-          } catch (err2) {
-            if (err2.response?.status === 404) {
-              try {
-                response = await api.get('profile/');
-              } catch (err3) {
-                if (err3.response?.status === 404) {
-                  response = await api.get('user/');
-                } else {
-                  throw err3;
-                }
-              }
-            } else {
-              throw err2;
-            }
-          }
-        } else {
-          throw err;
-        }
-      }
+      const response = await api.get('accounts/profile/');
       
       console.log('User profile loaded:', response.data);
       setUser(response.data);
@@ -73,33 +47,7 @@ export const UserProvider = ({ children }) => {
     localStorage.setItem('token', token);
     setLoading(true);
     try {
-      // Try different possible endpoints
-      let response;
-      try {
-        response = await api.get('auth/profile/');
-      } catch (err) {
-        if (err.response?.status === 404) {
-          try {
-            response = await api.get('accounts/profile/');
-          } catch (err2) {
-            if (err2.response?.status === 404) {
-              try {
-                response = await api.get('profile/');
-              } catch (err3) {
-                if (err3.response?.status === 404) {
-                  response = await api.get('user/');
-                } else {
-                  throw err3;
-                }
-              }
-            } else {
-              throw err2;
-            }
-          }
-        } else {
-          throw err;
-        }
-      }
+      const response = await api.get('accounts/profile/');
       
       console.log('Login successful, user data:', response.data);
       setUser(response.data);
@@ -121,25 +69,7 @@ export const UserProvider = ({ children }) => {
 
   const updateProfile = async (profileData) => {
     try {
-      // Try different possible endpoints
-      let response;
-      try {
-        response = await api.put('auth/profile/', profileData);
-      } catch (err) {
-        if (err.response?.status === 404) {
-          try {
-            response = await api.put('accounts/profile/', profileData);
-          } catch (err2) {
-            if (err2.response?.status === 404) {
-              response = await api.put('profile/', profileData);
-            } else {
-              throw err2;
-            }
-          }
-        } else {
-          throw err;
-        }
-      }
+      const response = await api.put('accounts/profile/', profileData);
       
       setUser(response.data);
       return { success: true };
